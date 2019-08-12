@@ -3,7 +3,7 @@ import styled from "styled-components";
 import Card from "@material-ui/core/Paper";
 import Input from "@material-ui/core/Input";
 import Button from "@material-ui/core/Button";
-import io from "socket.io-client";
+import { socket } from "../constants";
 
 export const CenterPaper = styled(Card)`
   && {
@@ -13,6 +13,7 @@ export const CenterPaper = styled(Card)`
     margin-top: 150px;
     margin-left: auto;
     margin-right: auto;
+    position: relative;
   }
 `;
 export const CenterInput = styled(Input)`
@@ -22,47 +23,77 @@ export const CenterInput = styled(Input)`
     margin: 20px;
   }
 `;
+export const CenterLoadFile = styled.input`
+  && {    
+    padding: 10px;
+    padding-left: 25px;    
+    margin-left: auto;
+    margin-right: auto;
+  }
+`;
 export const CenterButton = styled(Button)`
   && {
     display: block;
     width: 180px;
+    position: absolute;
     margin-left: auto;
     margin-right: auto;
-    margin-top: 25px;
+    left: 0;
+    right: 0;
+    top: 90%;
+    margin-top: -50px;
   }
 `;
 
 class Authorization extends Component {
   state = {
     login: "",
-    password: ""
+    file: ""
   };
 
-  socket = io('http://localhost:8000');
-
-  handleChange(event) {
+  handleChange = event => {
     switch (event.target.id) {
       case "login":
         this.setState({ login: event.target.value });
         break;
-      case "password":
-        this.setState({ password: event.target.value });
-        break;      
       default:
-        alert("unknown id in auth");
+        alert("Unknown id in authorization.js/handleChange");
     }
+  };
+
+  handleImageChange(e) {
+    e.preventDefault();
+
+    let reader = new FileReader();
+    let file = e.target.files[0];
+
+    reader.onloadend = () => {
+      this.setState({
+        file: reader.result
+      });
+    };
+
+    reader.readAsDataURL(file);
   }
 
   singInClick = () => {
-    const { login, password } = this.state;
-    if (login.value !== "" && password.value !== "" ) {         
-      this.socket.emit("singIn", {
-        login: login.value,
-        password: password.value,
+    const { login, file } = this.state;
+    if (login !== undefined ) {
+      socket.emit("singIn", {
+        login: login,
+        file: file
       });
+      console.log("singIn with login: " + login);          
+      this.props.updateData(login);
     }
   };
+
   render() {
+    let { file } = this.state;
+    let _file = null;
+    if (file) {
+      _file = <img src={file} height="70px" width="70px" />;
+    }
     return (
       <>
         <CenterPaper>
@@ -70,18 +101,14 @@ class Authorization extends Component {
             id="login"
             placeholder="Логин"
             value={this.state.login}
-            onChange={this.handleChange.bind(this)}
+            onChange={this.handleChange}
           />
-          <CenterInput
-            id="password"
-            placeholder="Пароль"
-            value={this.state.password}
-            onChange={this.handleChange.bind(this)}
-          />
+          <CenterLoadFile type="file" onChange={e => this.handleImageChange(e)} />
+          <div>{_file}</div>
           <CenterButton
             id="singIn"
             variant="outlined"
-            onClick={this.singInClick()}
+            onClick={this.singInClick}
           >
             Войти
           </CenterButton>
